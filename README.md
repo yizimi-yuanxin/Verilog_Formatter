@@ -3,9 +3,9 @@ By Dr. Liu, refined by Tianhao Li, Zhuoqian Li
 
 ## basic information for code
 
-filename:      verilog_format.py
-description:   format verilog file
-author:        liusheng
+    filename:      verilog_format.py
+    description:   format verilog file
+    author:        liusheng
 
 ### revision List:
 
