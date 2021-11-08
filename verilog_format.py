@@ -12,6 +12,8 @@
 # r5: 2021.10.10 litianhao add the table formatter, but need to fix
 # r6: 2021.10.17 litianhao add the blank format to keep two blank lines only
 #                      and debug for last code
+# r7: 2021.11.08 litianhao add the assign align and format of assign's formula
+#                      and debug for code of table module
 # work to be done:
 # 0) add the config/primitive/specify/table judge code
 # 1) multi blank lines only keep two blank lines
