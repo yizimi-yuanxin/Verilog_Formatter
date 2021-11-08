@@ -17,6 +17,8 @@ By Dr. Liu, refined by Tianhao Li, Zhuoqian Li
     r5: 2021.10.10 litianhao add the table formatter, but need to fix
     r6: 2021.10.17 litianhao add the blank format to keep two blank lines only
                         and debug for last code
+    r7: 2021.11.08 litianhao add the assign align and format of assign's formula
+                        and debug for code of table module
 
 ### work to be done:
 
@@ -24,4 +26,4 @@ By Dr. Liu, refined by Tianhao Li, Zhuoqian Li
     1) multi blank lines only keep two blank lines         (need to check)
     2) assign align
     3) inst align
-    4) translate chinese into english
+    4) translate Chinese into English
