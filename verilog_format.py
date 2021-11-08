@@ -241,6 +241,64 @@ def declare_align(string):
             return string
     else:
         return string
+    
+# Assign align
+
+def is_signal(string):
+    signal = -1
+    list2 = ["<=", "=="]
+    list1 = ["=", "+", "-", "*", "/", "&", "|", "!", "?", ":"]
+    list0 = ["(", ")", "[", "]", "{", "}"]
+    if string[0:2] in list2:
+        signal = string[0:2]
+    elif string[0] in list1:
+        signal = string[0]
+    elif string[0] in list0:
+        signal = string[0]
+    else:
+        if string[0].isalnum() or string[0] == "_":
+            signal = -1
+    return signal
+        
+
+def assign_align(string):
+    can_align = 0
+    pos1, pos2 = 0, 0
+    list0 = ["assign"]
+    bracket = ["(", ")", "{", "}", "[", "]"]
+    temp = string.split()
+    if len(temp) == 0:
+        return string
+    if not (temp[0] in list0):
+        return string
+    NoBlankString = "".join(temp[1:])
+    # print(NoBlankString)
+    putpos = []
+    BlankString = ""
+    range_list = list(range(len(NoBlankString)))
+    InMiddleBracket = False
+    for i in range_list:
+        signal = is_signal(NoBlankString[i:])
+        
+        if signal != -1:
+            if not (signal in bracket):
+                if not InMiddleBracket:
+                    BlankString += " " + signal + " "
+            else:
+                BlankString += signal
+                if signal == "[":
+                    InMiddleBracket = True
+                elif signal == "]":
+                    InMiddleBracket = False
+                    
+            if len(signal) > 1:
+                for j in range(len(signal) - 1):
+                    range_list.remove(i + j)
+                    
+        else:
+            BlankString += NoBlankString[i]
+    return temp[0] + " " + BlankString
+    # return string
 
 # config's formatter
 # just for small portion of all codes...
@@ -289,10 +347,22 @@ def get_data_length(line):
                 pos2 = i - 1
     return input_number, data_length
 
-# need to fix...
-def table_formatter(line, input_number, data_length):
+# make table keep one ' ' between 0/1/:
+def table_formatter(line):
     temp1 = line.split(' ')
-    line = ' '.join(temp1)
+    temp2 = []
+    for temp in temp1:
+        if temp != ":" and temp.find(":") != -1:
+            poscolon = temp.find(":")
+            if poscolon != 0:
+                temp2.append(temp[0: poscolon])
+            temp2.append(":")
+            if poscolon != len(temp) - 1:
+                temp2.append(temp[poscolon + 1: ])
+        else:
+            temp2.append(temp)
+    line = ' '.join(temp2)
+    # print(line)
     return line
 
 # To judge if all the line only has blank words
@@ -342,8 +412,8 @@ blank_keep = 0
 # 1: all comment
 # 2: #####//
 # 3: #####/*
-#4: */#####
-#5: ####/*...*/####
+# 4: */#####
+# 5: ####/*...*/####
 
 while line:
     
@@ -371,11 +441,13 @@ while line:
     # print ('line2 - 2:', line2, file=fileout)
     # print(line2 + "  --line2", file = fileout)
     if table_keep:
-        if line1.find('//'):
-            Input_number, Data_length = get_data_length(line1) # Get from the comment
-        else:
-            line1 = table_formatter(line1, Input_number, Data_length) # the table format
-            # print ('line1    ', line1, " --after modify", file=fileout)
+        # if line1.find('//'):
+        #     Input_number, Data_length = get_data_length(line1) # Get from the comment
+        # else:
+        #     line1 = table_formatter(line1, Input_number, Data_length) # the table format
+        #     print ('line1    ', line1, " --after modify", file=fileout)
+        line1 = table_formatter(line1) # the table format
+        # print ('line1    ', line1, " --after modify")
     
     if (rtl_real_has(line2, 'end', 'begin')):
         grade -= 1
@@ -409,7 +481,7 @@ while line:
         grade -= 1
         delt1 = 0
         delt2 = 0
-        # table_keep = 1
+        table_keep = 0
     elif (rtl_real_has(line2, 'endprimitive', 'primitive')):  # new
         grade -= 1
         delt1 = 0
@@ -447,6 +519,7 @@ while line:
         delt1 = 0
     else:
         line1 = declare_align(line1)
+        line1 = assign_align(line1)
 
     # new
     Can_Be_Print = 1
@@ -483,6 +556,7 @@ while line:
         grade += 1
     elif (rtl_real_has(line2, 'table', 'endtable')):  # new
         grade += 1
+        table_keep = 1
     elif (rtl_real_has(line2, 'primitive', 'endprimitive')):  # new
         grade += 1
     elif (rtl_real_has(line2, 'fork', 'join')):
