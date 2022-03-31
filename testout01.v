@@ -57,35 +57,35 @@ module DWC_xpcs_pseq_e12 (
     ,pseq_rx_req
     );
     
-    input            clk_csr_i;             // CSR clock
-    input            rst_clk_csr_n;         // Reset sync'ed to clk_csr_i
+    input                       clk_csr_i;            // CSR clock
+    input                       rst_clk_csr_n;        // Reset sync'ed to clk_csr_i
     
-    input            actv_rst_clk_csr_pseq; // Indicates rst_clk_csr_pseq_n active, assert 1 clock cycle early of rst_clk_csr_pseq_n assert and deasserts with it
+    input                       actv_rst_clk_csr_pseq;// Indicates rst_clk_csr_pseq_n active, assert 1 clock cycle early of rst_clk_csr_pseq_n assert and deasserts with it
     
-    input  [`NUM_OF_LANES-1:0]scc_tx_ack;   // ack for tx control event frm phy
-    input  [`NUM_OF_LANES-1:0]scc_rx_ack;   // ack for tx control event frm phy
-    input            scc_pdown;             // power down sync'ed to csr clk
-    input            scc_psave;             // power save sync'ed to csr clk
-    input            scc_byp_pseq;          // Bypass power-up seq control
-    input            csr_e12_ref_clk_en;    // Ref clock power down control from CSR
-    input            power_down;            // Power down control from MCI/MDIO -unsychronized
-    input  [`NUM_OF_LANES-1:0]csr_e12_tx_lpd;// Tx power down control from CSR
-    input  [`NUM_OF_LANES-1:0]csr_e12_rx_lpd;// Rx power down control from CSR
-    input  [`NUM_OF_LANES-1:0]csr_e12_tx_reset;// Tx Reset control from CSR
-    input  [`NUM_OF_LANES-1:0]csr_e12_rx_reset;// Rx Reset control from CSR
-    input  [`NUM_OF_LANES-1:0]csr_e12_tx_clk_rdy;// Tx Clock Ready
+    input  [`NUM_OF_LANES-1:0]  scc_tx_ack;           // ack for tx control event frm phy
+    input  [`NUM_OF_LANES-1:0]  scc_rx_ack;           // ack for tx control event frm phy
+    input                       scc_pdown;            // power down sync'ed to csr clk
+    input                       scc_psave;            // power save sync'ed to csr clk
+    input                       scc_byp_pseq;         // Bypass power-up seq control
+    input                       csr_e12_ref_clk_en;   // Ref clock power down control from CSR
+    input                       power_down;           // Power down control from MCI/MDIO -unsychronized
+    input  [`NUM_OF_LANES-1:0]  csr_e12_tx_lpd;       // Tx power down control from CSR
+    input  [`NUM_OF_LANES-1:0]  csr_e12_rx_lpd;       // Rx power down control from CSR
+    input  [`NUM_OF_LANES-1:0]  csr_e12_tx_reset;     // Tx Reset control from CSR
+    input  [`NUM_OF_LANES-1:0]  csr_e12_rx_reset;     // Rx Reset control from CSR
+    input  [`NUM_OF_LANES-1:0]  csr_e12_tx_clk_rdy;   // Tx Clock Ready
     
-    output [`NUM_OF_LANES-1:0]pseq_tx_lpd;  // Tx power down control to phy - Puts PHY in P1 power state
-    output [`NUM_OF_LANES-1:0]pseq_rx_lpd;  // Tx power down control to phy - Puts PHY in P1 power state
-    output [`NUM_OF_LANES-1:0]pseq_tx_reset;// Tx Reset to phy - Puts PHY in P2 state
-    output [`NUM_OF_LANES-1:0]pseq_rx_reset;// Rx Reset to phy - Puts PHY in P2 state
-    output           pseq_pwr_up;           // Signal indicating power good
-    output [6:0]     pseq_state;            // power-up sequence state
-    output           pseq_ref_clk_en;       // Ref clock power down cntrol output
-    output [`NUM_OF_LANES-1:0]pseq_tx_clk_rdy;// Tx clock ready output
+    output [`NUM_OF_LANES-1:0]  pseq_tx_lpd;          // Tx power down control to phy - Puts PHY in P1 power state
+    output [`NUM_OF_LANES-1:0]  pseq_rx_lpd;          // Tx power down control to phy - Puts PHY in P1 power state
+    output [`NUM_OF_LANES-1:0]  pseq_tx_reset;        // Tx Reset to phy - Puts PHY in P2 state
+    output [`NUM_OF_LANES-1:0]  pseq_rx_reset;        // Rx Reset to phy - Puts PHY in P2 state
+    output                      pseq_pwr_up;          // Signal indicating power good
+    output [6:0]                pseq_state;           // power-up sequence state
+    output                      pseq_ref_clk_en;      // Ref clock power down cntrol output
+    output [`NUM_OF_LANES-1:0]  pseq_tx_clk_rdy;      // Tx clock ready output
     
-    output [`NUM_OF_LANES-1:0]pseq_tx_req;  // Tx req for tx_lpd
-    output [`NUM_OF_LANES-1:0]pseq_rx_req;  // Rx Req for rx_lpd
+    output [`NUM_OF_LANES-1:0]  pseq_tx_req;          // Tx req for tx_lpd
+    output [`NUM_OF_LANES-1:0]  pseq_rx_req;          // Rx Req for rx_lpd
     
     
     // Parameters
@@ -97,18 +97,18 @@ module DWC_xpcs_pseq_e12 (
     POWER_SAVE = 5,
     POWER_DOWN = 6;
     
-    reg            pseq_pwr_up;             // DUT is in POWER GOOD state
-    reg  [6:0]     pseq_state, pseq_next_state;// State machine variables
-    reg  [`NUM_OF_LANES-1:0]pseq_tx_lpd;    // Tx Lane Power Down- Asserted in PSAVE
-    reg  [`NUM_OF_LANES-1:0]pseq_rx_lpd;    // Tx Lane Power Down- Asserted in PSAVE
-    reg  [`NUM_OF_LANES-1:0]pseq_tx_reset;  // Tx Reset- Asserted in PDOWN
-    reg  [`NUM_OF_LANES-1:0]pseq_rx_reset;  // Rx Reset- Asserted in PDOWN
-    reg  [`NUM_OF_LANES-1:0]pseq_tx_req;    // Tx Req - needed for tx_lpd change
-    reg  [`NUM_OF_LANES-1:0]pseq_rx_req;    // Rx Req - needed for rx_lpd change
-    reg  [`NUM_OF_LANES-1:0]pseq_tx_clk_rdy_prg;// Tx Clk Ready (Required for PHY Tx lane alignment)
-    reg            lpd_hi;                  // High when tx/rx LPD are asserted
+    reg                         pseq_pwr_up;          // DUT is in POWER GOOD state
+    reg    [6:0]                pseq_state, pseq_next_state;// State machine variables
+    reg    [`NUM_OF_LANES-1:0]  pseq_tx_lpd;          // Tx Lane Power Down- Asserted in PSAVE
+    reg    [`NUM_OF_LANES-1:0]  pseq_rx_lpd;          // Tx Lane Power Down- Asserted in PSAVE
+    reg    [`NUM_OF_LANES-1:0]  pseq_tx_reset;        // Tx Reset- Asserted in PDOWN
+    reg    [`NUM_OF_LANES-1:0]  pseq_rx_reset;        // Rx Reset- Asserted in PDOWN
+    reg    [`NUM_OF_LANES-1:0]  pseq_tx_req;          // Tx Req - needed for tx_lpd change
+    reg    [`NUM_OF_LANES-1:0]  pseq_rx_req;          // Rx Req - needed for rx_lpd change
+    reg    [`NUM_OF_LANES-1:0]  pseq_tx_clk_rdy_prg;  // Tx Clk Ready (Required for PHY Tx lane alignment)
+    reg                         lpd_hi;               // High when tx/rx LPD are asserted
     
-    wire           pseq_ref_clk_en;
+    wire                        pseq_ref_clk_en;
     
     
     DWC_xpcs_and
@@ -198,11 +198,11 @@ module DWC_xpcs_pseq_e12 (
     
     
     table
-        0 0 0 :0
-        0 1 0:1
-        1 0 0:0
-        1 1 1:0
-        1 0 0 :1
+        0 0 0 : 0
+        0 1 0 : 1
+        1 0 0 : 0
+        1 1 1 : 0
+        1 0 0 : 1
     endtable
     
     
@@ -275,7 +275,7 @@ module DWC_xpcs_pseq_e12 (
     
     
     ///////////////////////////////////////////////
-    assign pseq_ref_clk_en = (power_down & pseq_state [POWER_DOWN]) ? csr_e12_ref_clk_en:`H;
+    assign pseq_ref_clk_en = (power_down & pseq_state[POWER_DOWN]) ? csr_e12_ref_clk_en : `H;
     ///////////////////////////////////////////////
     
     // Clk Rdy -To be asserted on Tx clks are UP

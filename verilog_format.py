@@ -25,14 +25,20 @@ import sys
 import re
 import os
 
+POS0_DEFAULT = 7
+POS1_DEFAULT = 28
+POS2_DEFAULT = 50
+
+POS0_OUT_DEFAULT = 12
+POS1_OUT_DEFAULT = 28
 
 # RTL modole Judging
 def rtl_has(string, key):
-    if (string.find(" " + key + " ") != -1):  # 0: ##_key_##
+    if (string.find(" " + key + " ") != -1):    # 0: ##_key_##
         return True
-    if (string.find(" " + key + "(") != -1):  # 1: ##_key(##
+    if (string.find(" " + key + "(") != -1):    # 1: ##_key(##
         return True
-    if (string.find(" " + key + ":") != -1):  # 2: ##_key:##
+    if (string.find(" " + key + ":") != -1):    # 2: ##_key:##
         return True
     elif (string.find(")" + key + " ") != -1):  # 3: ##)key_##
         return True
@@ -42,17 +48,17 @@ def rtl_has(string, key):
         return True
     # elif (string.find(":" + key + ' ') != -1):  # new: ##:key_##
     #     return True
-    elif (string.startswith(key + ' ')):  # 6: key_###
+    elif (string.startswith(key + ' ')):        # 6: key_###
         return True
-    elif (string.startswith(key + '(')):  # 7: key(###
+    elif (string.startswith(key + '(')):        # 7: key(###
         return True
-    elif (string.startswith(key + ':')):  # 8: key:###
+    elif (string.startswith(key + ':')):        # 8: key:###
         return True
-    elif (string.endswith(' ' + key)):  # 9: ###_key
+    elif (string.endswith(' ' + key)):          # 9: ###_key
         return True
-    elif (string.endswith(')' + key)):  # 10: ###)key
+    elif (string.endswith(')' + key)):          # 10: ###)key
         return True
-    elif (string.endswith(':' + key)):  # new: ###:key
+    elif (string.endswith(':' + key)):          # new: ###:key
         return True
     elif (string.startswith(key) and string.endswith(key)):  # 11: key###key
         return True
@@ -75,8 +81,8 @@ def rtl_just_has(string, key):
     else:
         return False
 
-# To find the mapping of {} or if/endif or [] or so on....
 
+# To find the mapping of {} or if/endif or [] or so on....
 def rtl_real_just_has(string, key1, key2):
     if (rtl_just_has(string, key1)):
         if (not rtl_just_has(string, key2)):
@@ -187,22 +193,22 @@ def declare_align(string):
     if (len(temp1) > 0):
         # eg: reg [35:0]     araddr
         if (temp1[0] in list2):
-            pos0 = 5
-            pos1 = 15
-            pos2 = 40
+            pos0 = POS0_DEFAULT
+            pos1 = POS1_DEFAULT
+            pos2 = POS2_DEFAULT
             can_align = 1
     if (len(temp1) > 1):
         # eg: input [35:0]   addr;
         if ((temp1[0] in list1) and (not (temp1[1] in list2))):
-            pos0 = 7
-            pos1 = 17
-            pos2 = 40
+            pos0 = POS0_DEFAULT
+            pos1 = POS1_DEFAULT
+            pos2 = POS2_DEFAULT
             can_align = 2
         # eg: output reg [5:0]     id;
         if ((temp1[0] in list1) and ((temp1[1] in list2))):
-            pos0 = 12
-            pos1 = 22
-            pos2 = 40
+            pos0 = POS0_OUT_DEFAULT
+            pos1 = POS1_OUT_DEFAULT
+            pos2 = POS2_DEFAULT
             can_align = 3
     # print 	pos1
     # print 	pos2
@@ -244,8 +250,7 @@ def declare_align(string):
     else:
         return string
     
-# Assign align
-
+# Assign align for signal
 def is_signal(string):
     signal = -1
     list2 = ["<=", "=="]
@@ -261,8 +266,9 @@ def is_signal(string):
         if string[0].isalnum() or string[0] == "_":
             signal = -1
     return signal
-        
 
+
+# Assign align
 def assign_align(string):
     can_align = 0
     pos1, pos2 = 0, 0
@@ -377,221 +383,217 @@ def Judge_Blank(line):
 
 #### main ###########################################################################################
 
+if __name__ == "__main__":
+    if (sys.argv[1] == '-h'):
+        print('This tool can format verilog file.')
+        print('please type "verilog_format.py name.v", it will geneate the formatted name.v')
+        print('please type "verilog_format.py old_name.v new_name.v", it will geneate the formatted new_name.v')
+        print('The author of this sofware is liusheng from NUDTWDZS, China.')
+        sys.exit()
 
-if (sys.argv[1] == '-h'):
-    print('This tool can format verilog file.')
-    print('please type "verilog_format.py name.v", it will geneate the formatted name.v')
-    print('please type "verilog_format.py old_name.v new_name.v", it will geneate the formatted new_name.v')
-    print('The author of this sofware is liusheng from NUDTWDZS, China.')
-    sys.exit()
+    filepath = sys.argv[1]
 
-filepath = sys.argv[1]
+    os.system("dos2unix -q %s" % filepath)
 
-os.system("dos2unix -q %s" % filepath)
+    filein = open(filepath, "r")
 
-filein = open(filepath, "r")
-if (len(sys.argv) == 2):
-    output_file = sys.argv[1]
-elif (len(sys.argv) == 3):
-    output_file = sys.argv[2]
-else:
-    print("not support!")
-fileout = open(".123.v", "w")
-
-line = filein.readline()
-grade = 0
-line1 = ""
-line2 = ""
-lastline = ""
-llastline = ""
-comment_keep = 0
-comment_type = 0
-table_keep = 0
-delt1 = 0
-delt2 = 0
-blank_keep = 0
-# 0: no comment
-# 1: all comment
-# 2: #####//
-# 3: #####/*
-# 4: */#####
-# 5: ####/*...*/####
-
-while line:
-    
-    if (line.find("//") != -1):
-        comment_type = 2
-    if ((line.find("/*") != -1) and (line.find("*/") == -1)):
-        comment_keep = 1
-        comment_type = 3
-    elif ((line.find("*/") != -1) and (line.find("/*") == -1)):
-        comment_keep = 0
-        comment_type = 4
-    elif ((line.find("*/") != -1) and (line.find("/*") != -1)):
-        comment_keep = 0
-        comment_type = 5
-    elif (comment_keep == 1):
-        comment_type = 1
-
-    # print comment_type
-
-    line1 = line_format(comment_type, line)
-    # print ('line1    :', line1, file=fileout)
-    line2 = del_comment(comment_type, line)
-    # print ('line2 - 1:', line2, file=fileout)
-    line2 = line_format(comment_type, line2)
-    # print ('line2 - 2:', line2, file=fileout)
-    # print(line2 + "  --line2", file = fileout)
-    if table_keep:
-        # if line1.find('//'):
-        #     Input_number, Data_length = get_data_length(line1) # Get from the comment
-        # else:
-        #     line1 = table_formatter(line1, Input_number, Data_length) # the table format
-        #     print ('line1    ', line1, " --after modify", file=fileout)
-        line1 = table_formatter(line1) # the table format
-        # print ('line1    ', line1, " --after modify")
-    
-    if (rtl_real_has(line2, 'end', 'begin')):
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif (rtl_real_has(line2, 'endmodule', 'module')):
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif (rtl_real_has(line2, 'endfunction', 'function')):
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif (rtl_real_has(line2, 'endtask', 'task')):
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif (rtl_real_has(line2, 'endgenerate', 'generate')):
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif (rtl_real_has(line2, 'endspecify', 'specify')):  # new
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif (rtl_real_has(line2, 'endconfig', 'config')):  # new
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif (rtl_real_has(line2, 'endtable', 'table')):  # new
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-        table_keep = 0
-    elif (rtl_real_has(line2, 'endprimitive', 'primitive')):  # new
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif (rtl_real_has(line2, 'join', 'fork')):
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif (rtl_real_has(line2, '`else', '`endif')):
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif ((rtl_real_has(line2, '`endif', '`ifdef'))
-          or rtl_real_has(line2, '`endif', '`ifndef')):
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif ((rtl_real_has(line2, 'endcase', 'case'))
-          or rtl_real_has(line2, 'endcase', 'casez')
-          or rtl_real_has(line2, 'endcase', 'casex')):
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif (rtl_real_has(line2, 'endclass', 'class')):
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif (rtl_real_just_has(line2, '}', '{') and line2.startswith("}")):
-        grade -= 1
-        delt1 = 0
-        delt2 = 0
-    elif (rtl_has(line2, 'if')):
-        delt2 = 0
-    elif (rtl_has(line2, 'else')):
-        delt1 = 0
+    if (len(sys.argv) == 2):
+        output_file = sys.argv[1]
+    elif (len(sys.argv) == 3):
+        output_file = sys.argv[2]
     else:
-        line1 = declare_align(line1)
-        line1 = assign_align(line1)
+        print("not support!")
 
-    # new
-    Can_Be_Print = 1
-    if Judge_Blank(line1):
-        if blank_keep >= 2:
-            Can_Be_Print = 0
-        blank_keep += 1
-    else:
-        Can_Be_Print = 1
-        blank_keep = 0
-    
-    # print ('line1: ', line1, file=fileout)
-    if Can_Be_Print: # new
-        print(((" " * (grade + delt1 + delt2) * 4) + line1), file=fileout)
-    # print >> fileout, " " * (grade + delt1 + delt2) * 4 + line1
-    # print >> fileout, str(grade + delt1 + delt2) + " " * (grade + delt1 + delt2) * 4 + line1
-    delt1 = 0
-    delt2 = 0
-
-    if (rtl_real_has(line2, 'begin', 'end')):
-        # print('lalala', file = fileout)
-        grade += 1
-    elif (rtl_real_has(line2, 'module', 'endmodule')):
-        grade += 1
-    elif (rtl_real_has(line2, 'function', 'endfunction')):
-        grade += 1
-    elif (rtl_real_has(line2, 'task', 'endtask')):
-        grade += 1
-    elif (rtl_real_has(line2, 'generate', 'endgenerate')):
-        grade += 1
-    elif (rtl_real_has(line2, 'specify', 'endspecify')):  # new
-        grade += 1
-    elif (rtl_real_has(line2, 'config', 'endconfig')):  # new
-        grade += 1
-    elif (rtl_real_has(line2, 'table', 'endtable')):  # new
-        grade += 1
-        table_keep = 1
-    elif (rtl_real_has(line2, 'primitive', 'endprimitive')):  # new
-        grade += 1
-    elif (rtl_real_has(line2, 'fork', 'join')):
-        grade += 1
-    elif (rtl_real_has(line2, '`ifdef', '`endif')):
-        grade += 1
-    elif (rtl_real_has(line2, '`ifndef', '`endif')):
-        grade += 1
-    elif (rtl_real_has(line2, '`else', '`endif')):
-        grade += 1
-    elif (rtl_real_has(line2, 'case', 'endcase')):
-        grade += 1
-    elif (rtl_real_has(line2, 'casez', 'endcase')):
-        grade += 1
-    elif (rtl_real_has(line2, 'casex', 'endcase')):
-        grade += 1
-    elif (rtl_real_has(line2, 'class', 'endclass')):
-        grade += 1
-    elif (rtl_real_just_has(line2, '{', '}')):
-        grade += 1
-    elif (rtl_real_just_has(line2, '}', '{') and (not line2.startswith('}'))):
-        grade -= 1
-    elif (rtl_has(line2, 'if') and (not line2.endswith(';'))):
-        delt1 = 1
-    elif (line2.endswith('else') and not (line2.endswith(';'))):
-        delt2 = 1
-
+    fileout = open(".temp.v", "w")
     line = filein.readline()
-    comment_type = 0
 
-fileout.close()
-filein.close()
-os.system("cp -rf .123.v %s" % str(output_file))
-os.system("rm -rf .123.v ")
+    grade = 0                           # grade: Times for cycle or judge
+    delt1 = 0                           # delt1: number for \t(1)
+    delt2 = 0                           # delt2: number for \t(2)
+
+    line1 = ""                          # line1: info which has comment
+    line2 = ""                          # line2: info wiich not has comment
+    
+    comment_keep = 0                    # comment_keep: if comment is keeping
+    comment_type = 0                    # comment_type: comment type
+    table_keep = 0                      # table_keep:   if table is keeping
+    blank_keep = 0                      # blank_keep:   if blank line is keeping
+
+    while line:
+        
+        if (line.find("//") != -1):
+            comment_type = 2
+        if ((line.find("/*") != -1) and (line.find("*/") == -1)):
+            comment_keep = 1
+            comment_type = 3
+        elif ((line.find("*/") != -1) and (line.find("/*") == -1)):
+            comment_keep = 0
+            comment_type = 4
+        elif ((line.find("*/") != -1) and (line.find("/*") != -1)):
+            comment_keep = 0
+            comment_type = 5
+        elif (comment_keep == 1):
+            comment_type = 1
+
+        # print comment_type
+
+        line1 = line_format(comment_type, line)
+        # print ('line1    :', line1, file=fileout)
+        line2 = del_comment(comment_type, line)
+        # print ('line2 - 1:', line2, file=fileout)
+        line2 = line_format(comment_type, line2)
+        # print ('line2 - 2:', line2, file=fileout)
+        # print(line2 + "  --line2", file = fileout)
+        if table_keep:
+            # if line1.find('//'):
+            #     Input_number, Data_length = get_data_length(line1) # Get from the comment
+            # else:
+            #     line1 = table_formatter(line1, Input_number, Data_length) # the table format
+            #     print ('line1    ', line1, " --after modify", file=fileout)
+            line1 = table_formatter(line1) # the table format
+            # print ('line1    ', line1, " --after modify")
+        
+        if (rtl_real_has(line2, 'end', 'begin')):
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif (rtl_real_has(line2, 'endmodule', 'module')):
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif (rtl_real_has(line2, 'endfunction', 'function')):
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif (rtl_real_has(line2, 'endtask', 'task')):
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif (rtl_real_has(line2, 'endgenerate', 'generate')):
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif (rtl_real_has(line2, 'endspecify', 'specify')):  # new
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif (rtl_real_has(line2, 'endconfig', 'config')):  # new
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif (rtl_real_has(line2, 'endtable', 'table')):  # new
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+            table_keep = 0
+        elif (rtl_real_has(line2, 'endprimitive', 'primitive')):  # new
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif (rtl_real_has(line2, 'join', 'fork')):
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif (rtl_real_has(line2, '`else', '`endif')):
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif ((rtl_real_has(line2, '`endif', '`ifdef'))
+            or rtl_real_has(line2, '`endif', '`ifndef')):
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif ((rtl_real_has(line2, 'endcase', 'case'))
+            or rtl_real_has(line2, 'endcase', 'casez')
+            or rtl_real_has(line2, 'endcase', 'casex')):
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif (rtl_real_has(line2, 'endclass', 'class')):
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif (rtl_real_just_has(line2, '}', '{') and line2.startswith("}")):
+            grade -= 1
+            delt1 = 0
+            delt2 = 0
+        elif (rtl_has(line2, 'if')):
+            delt2 = 0
+        elif (rtl_has(line2, 'else')):
+            delt1 = 0
+        else:
+            line1 = declare_align(line1)
+            line1 = assign_align(line1)
+
+        # new
+        Can_Be_Print = 1
+        if Judge_Blank(line1):
+            if blank_keep >= 2:
+                Can_Be_Print = 0
+            blank_keep += 1
+        else:
+            Can_Be_Print = 1
+            blank_keep = 0
+        
+        # print ('line1: ', line1, file=fileout)
+        if Can_Be_Print: # new
+            print(((" " * (grade + delt1 + delt2) * 4) + line1), file=fileout)
+        # print >> fileout, " " * (grade + delt1 + delt2) * 4 + line1
+        # print >> fileout, str(grade + delt1 + delt2) + " " * (grade + delt1 + delt2) * 4 + line1
+        delt1 = 0
+        delt2 = 0
+
+        if (rtl_real_has(line2, 'begin', 'end')):
+            # print('lalala', file = fileout)
+            grade += 1
+        elif (rtl_real_has(line2, 'module', 'endmodule')):
+            grade += 1
+        elif (rtl_real_has(line2, 'function', 'endfunction')):
+            grade += 1
+        elif (rtl_real_has(line2, 'task', 'endtask')):
+            grade += 1
+        elif (rtl_real_has(line2, 'generate', 'endgenerate')):
+            grade += 1
+        elif (rtl_real_has(line2, 'specify', 'endspecify')):  # new
+            grade += 1
+        elif (rtl_real_has(line2, 'config', 'endconfig')):  # new
+            grade += 1
+        elif (rtl_real_has(line2, 'table', 'endtable')):  # new
+            grade += 1
+            table_keep = 1
+        elif (rtl_real_has(line2, 'primitive', 'endprimitive')):  # new
+            grade += 1
+        elif (rtl_real_has(line2, 'fork', 'join')):
+            grade += 1
+        elif (rtl_real_has(line2, '`ifdef', '`endif')):
+            grade += 1
+        elif (rtl_real_has(line2, '`ifndef', '`endif')):
+            grade += 1
+        elif (rtl_real_has(line2, '`else', '`endif')):
+            grade += 1
+        elif (rtl_real_has(line2, 'case', 'endcase')):
+            grade += 1
+        elif (rtl_real_has(line2, 'casez', 'endcase')):
+            grade += 1
+        elif (rtl_real_has(line2, 'casex', 'endcase')):
+            grade += 1
+        elif (rtl_real_has(line2, 'class', 'endclass')):
+            grade += 1
+        elif (rtl_real_just_has(line2, '{', '}')):
+            grade += 1
+        elif (rtl_real_just_has(line2, '}', '{') and (not line2.startswith('}'))):
+            grade -= 1
+        elif (rtl_has(line2, 'if') and (not line2.endswith(';'))):
+            delt1 = 1
+        elif (line2.endswith('else') and not (line2.endswith(';'))):
+            delt2 = 1
+
+        line = filein.readline()
+        comment_type = 0
+
+    fileout.close()
+    filein.close()
+    os.system("cp -rf .temp.v %s" % str(output_file))
+    os.system("rm -rf .temp.v ")
 
 #### main ###########################################################################################

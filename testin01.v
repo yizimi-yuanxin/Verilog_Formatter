@@ -285,7 +285,7 @@ end
 
 
 ///////////////////////////////////////////////
-assign pseq_ref_clk_en = (power_down & pseq_state [POWER_DOWN]) ? csr_e12_ref_clk_en : `H;  
+assign pseq_ref_clk_en =(power_down& pseq_state [POWER_DOWN   ]) ? csr_e12_ref_clk_en : `H;  
 ///////////////////////////////////////////////
 
 // Clk Rdy -To be asserted on Tx clks are UP
