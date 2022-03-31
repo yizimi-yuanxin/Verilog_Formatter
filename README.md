@@ -19,6 +19,7 @@ By Dr. Liu, refined by Tianhao Li, Zhuoqian Li
                         and debug for last code
     r7: 2021.11.08 litianhao add the assign align and format of assign's formula
                         and debug for code of table module
+    r8: 2022.03.31 litianhao optimize the details of formatter
 
 ### work to be done:
 
